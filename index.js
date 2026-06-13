@@ -2,6 +2,9 @@ import * as THREE from "three";
 import getLayer from "./getLayer.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 
 
 const w = window.innerWidth;
@@ -22,6 +25,22 @@ document.body.appendChild(renderer.domElement);
 // ensure page background is transparent
 document.documentElement.style.background = 'transparent';
 document.body.style.background = 'transparent';
+
+// Post-processing: slight bloom
+const composer = new EffectComposer(renderer);
+const renderPass = new RenderPass(scene, camera);
+composer.addPass(renderPass);
+
+// tweak these for a subtle bloom
+const bloomStrength = 0.5
+const bloomRadius = 1;
+const bloomThreshold = 0;
+const bloomPass = new UnrealBloomPass(new THREE.Vector2(w, h), bloomStrength, bloomRadius, bloomThreshold);
+bloomPass.renderToScreen = true;
+composer.addPass(bloomPass);
+
+composer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+composer.setSize(w, h);
 
 const ctrls = new OrbitControls(camera, renderer.domElement);
 ctrls.enableDamping = true;
@@ -68,13 +87,13 @@ yongeStreet.position.sub(center); // move model so its center is at (0,0,0) rela
 pivot.add(yongeStreet);
 
 // start rotated 270 degrees around Y
-pivot.rotation.y = 3 * Math.PI / 2; // 270deg
+pivot.rotation.y = 0.5 * Math.PI / 2; // 270deg
 
 // bounce setup: 180° total (min = 270° - 180° = 90°, max = 270°)
 const clock = new THREE.Clock();
 const rotationSpeed = 0.3; // radians per second (~0.005 per frame at 60fps)
 const startAngle = pivot.rotation.y; // 270deg
-const fullRange = Math.PI; // 180° in radians
+const fullRange = 0.5 * Math.PI; // 180° in radians
 const minAngle = startAngle - fullRange; // 90deg
 const maxAngle = startAngle; // 270deg
 let rotationDirection = -1; // start moving away from 270° in the same direction as before
@@ -145,7 +164,7 @@ function animate() {
 
   // update controls (damping) before render
   ctrls.update();
-  renderer.render(scene, camera);
+  composer.render();
 }
 
 animate();
